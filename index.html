@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Piracy Detector</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Media Piracy Detector</h1>
+
+    <!-- Auth Section -->
+    <div id="auth-section">
+        <h2>Login</h2>
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Login</button>
+        </form>
+        <div id="login-result"></div>
+
+        <h2>Register</h2>
+        <form id="register-form">
+            <label for="reg-username">Username:</label>
+            <input type="text" id="reg-username" name="reg-username" required>
+            
+            <label for="reg-password">Password:</label>
+            <input type="password" id="reg-password" name="reg-password" required>
+            
+            <button type="submit">Register</button>
+        </form>
+        <div id="register-result"></div>
+    </div>
+
+    <!-- Search Section -->
+    <div id="search-section" style="display:none;">
+        <h2>Check for Piracy</h2>
+        <form id="search-form">
+            <label for="url">Enter URL:</label>
+            <input type="url" id="url" name="url" required>
+            
+            <label for="keyword">Enter Keyword:</label>
+            <input type="text" id="keyword" name="keyword" required>
+            
+            <button type="submit">Search</button>
+        </form>
+        <div id="result"></div>
+        
+        <!-- Logout Button -->
+        <button id="logout-button" style="display:none;">Logout</button>
+    </div>
+
+    <script>
+        // Check if the user is logged in on page load
+        window.onload = async () => {
+            const sessionResponse = await fetch('/check-session');
+            const sessionData = await sessionResponse.json();
+            
+            if (sessionData.loggedIn) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('search-section').style.display = 'block';
+                document.getElementById('logout-button').style.display = 'block';
+            }
+        };
+
+        // Handle login form submission
+        const loginForm = document.getElementById('login-form');
+        const loginResult = document.getElementById('login-result');
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(loginForm);
+            const username = formData.get('username');
+            const password = formData.get('password');
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                const result = await response.text();
+                loginResult.innerText = result;
+                
+                if (result === 'Login successful!') {
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('search-section').style.display = 'block';
+                    document.getElementById('logout-button').style.display = 'block';
+                }
+            } catch (error) {
+                loginResult.innerText = 'Error logging in.';
+            }
+        });
+
+        // Handle registration form submission
+        const registerForm = document.getElementById('register-form');
+        const registerResult = document.getElementById('register-result');
+
+        registerForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(registerForm);
+            const username = formData.get('reg-username');
+            const password = formData.get('reg-password');
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                const result = await response.text();
+                registerResult.innerText = result;
+            } catch (error) {
+                registerResult.innerText = 'Error registering.';
+            }
+        });
+
+        // Handle search form submission
+        const searchForm = document.getElementById('search-form');
+        const resultDiv = document.getElementById('result');
+
+        searchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(searchForm);
+            const url = formData.get('url');
+            const keyword = formData.get('keyword');
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        url,
+                        keyword,
+                    }),
+                });
+                const result = await response.json();
+                resultDiv.innerHTML = `<p>${result.message}</p>`;
+                if (result.sentences) {
+                    resultDiv.innerHTML += `<ul>${result.sentences.map(s => `<li>${s}</li>`).join('')}</ul>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p>Error occurred: ${error.message}</p>`;
+            }
+        });
+
+        // Handle logout
+        const logoutButton = document.getElementById('logout-button');
+        logoutButton.addEventListener('click', async () => {
+            await fetch('/logout');
+            document.getElementById('search-section').style.display = 'none';
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('logout-button').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
