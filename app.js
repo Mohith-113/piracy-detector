@@ -75,40 +75,47 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Search for keyword in URL (protected route)
-// app.post('/search', isAuthenticated, async (req, res) => {
-//   const { url, keyword } = req.body;
 
-//   try {
-//     // Fetch the webpage content
-//     const { data } = await axios.get(url);
-//     const $ = cheerio.load(data);
+app.post('/search', isAuthenticated, async (req, res) => {
+  const { url, keyword } = req.body;
+
+  try {
+    // Fetch the webpage content
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
     
-//     // Extract text and search for keyword in sentences
-//     const text = $('body').text();
-//     const sentences = text.split('.').filter(sentence => sentence.includes(keyword));
+    // Extract text and search for keyword in sentences
+    const text = $('body').text();
+    const lowerCaseKeyword = keyword.toLowerCase(); // Convert keyword to lowercase
+    const sentences = text.split('.').filter(sentence => 
+      sentence.toLowerCase().includes(lowerCaseKeyword) // Case-insensitive search
+    );
     
-//     if (sentences.length > 0) {
-//       res.json({
-//         message: 'Potential piracy detected!',
-//         url,
-//         sentences
-//       });
-//     } else {
-//       res.json({
-//         message: 'No piracy detected.',
-//         url
-//       });
-//     }
-//   } catch (error) {
-//     res.status(500).json({
-//       message: 'Error fetching the URL. Please check if the URL is valid.',
-//       error: error.message
-//     });
-//   }
-// });
+    if (sentences.length > 0) {
+      // Highlight the keyword in each sentence (case-insensitive)
+      const highlightedSentences = sentences.map(sentence => {
+        const regex = new RegExp(`(${keyword})`, 'gi'); // Case-insensitive regex
+        return sentence.replace(regex, '<mark>$1</mark>'); // Wrap keyword in <mark> tag
+      });
 
-
+      res.json({
+        message: 'Potential piracy detected!',
+        url,
+        sentences: highlightedSentences // Send highlighted sentences back to the client
+      });
+    } else {
+      res.json({
+        message: 'No piracy detected.',
+        url
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error fetching the URL. Please check if the URL is valid.',
+      error: error.message
+    });
+  }
+});
 
 
 
